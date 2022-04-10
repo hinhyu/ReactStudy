@@ -104,3 +104,143 @@ HOC컴포넌트를 Custom React Hooks로 대체해서 너무나 많은 Wrapper�
 component를 인자로 받아서 새로운 React Component를 리턴하는 함수<br>
 화면에서 재사용 가능한 로직만을 분리해서 component로 만들고, 재사용 불가능한 UI와 같은 다른 부분들은 parameter로 받아서 처리하는 방법<br>
 
+```javascript
+export default class Apage extends Component {
+    state = {
+        user: []
+    }
+    componentDidMount(){
+        fetchUsers()
+        .then(users => {
+            this.setState({ users })
+        })
+    }
+    render() {
+        const { users } = this.state;
+        return (
+            <div>
+                A페이지
+                {users.map(({ name, url }) => (
+                    <div key={name}>
+                        <p>{name}, {url}</p>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+}
+```
+```javascript
+export default class Bpage extends Component {
+    state = {
+        user: []
+    }
+    componentDidMount(){
+        fetchUsers()
+        .then(users => {
+            this.setState({ users })
+        })
+    }
+    render() {
+        const { users } = this.state;
+        return (
+            <div>
+                B페이지
+                {users.map(({ name, url }) => (
+                    <div key={name}>
+                        <p>{name}, {url}</p>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+}
+```
+위에 보면 A페이지와 B페이지가 있는데 두 페이지에서 같은 소스를 사용하고 있는 부분이 있다 <br>
+그 부분은 유저 리스트를 가져오는 부분이다. <br>
+어떠한 페이지에서든 유저 리스트를 가져와야 하는 애플리케이션을 만드려고 한다. <br>
+하지만 모든 페이지에서 유저 리스트를 가져오기 위해서 똑같은 소스를 넣어준다면 너무 많은 중복이 되기 때문에 중복이 되는 부분은 따로 HOC 컴포넌트에 넣어주고 그 HOC 컴포넌트로 각각의 컴포넌트를 감싸주면 모든 컴포넌트에 따로 인증을 위한 부분을 넣어주지 않아도 된다. <br>
+
+```javascript
+function usersHOC(Component) {
+    return class userHOC extends React.Component {
+        state = {
+            users: []
+        }
+
+        componentDidMount() {
+            fetfchUsers()
+            .then(users => {
+                this.setState({ users })
+            })
+        }
+
+        render() {
+            return (
+                <Component
+                    {...this.props}
+                    {...this.state}
+                />
+            )
+        }
+    }
+}
+```
+```javascript
+funtion Apage ({ users }){
+    //...
+}
+export default usersHOC(Apage)
+
+funtion Bpage ({ users }){
+    //...
+}
+export default usersHOC(Bpage)
+```
+하지만 이 방법에도 문제가 있다. <br>
+바로 너무나 많은 Wrapper컴포넌트가 생길 수 있다는 것이다. <br>
+```javascript
+//EXAMPLE
+<LanguageHOC>
+    <ThemeHOC>
+        <AuthHOC>
+            <Apage/>
+        </AuthHOC>
+    </ThemeHOC>
+</LanguageHOC>
+```
+이러한 문제는 Custom React Hooks를 이용해서 해결할 수 있다.<br>
+
+```javascript
+function useAuth(){
+    const [users, set Users] = useState([]):
+
+    useEffect(() => {
+        fetchUsers().then(users => {
+            setUsers(users);
+        });
+    }), []);
+    return [users];
+}
+
+function Apage() {
+    const [users] = useAuth();
+
+    return (
+        <div>
+            A페이지
+            {users.map(({ name, url }) => (
+                <div key={name}>
+                    <p>{name},{url}</p>
+                </div>
+            ))}
+        </div>
+    );
+}
+```
+
+useAuth라는 CustomHooks를 만든다 <br>
+
+#### Hooks에서 state을 업데이트 해주려면 어떻게 해야 하나요?
+state을 정의해줄 때   const [ name, setName ] = useState(""); 이런식으로 해줌. <br>
+여기서 setName을 이용해서 state을 업데이트 시켜 줄 수 있다.
